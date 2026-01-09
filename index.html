@@ -73,8 +73,8 @@
               return {
                 x: centerX + Math.cos(angle) * distance,
                 y: centerY + Math.sin(angle) * distance,
-                vx: (Math.random() - 0.5) * 96,
-                vy: (Math.random() - 0.5) * 96,
+                vx: (Math.random() - 0.5) * 48,
+                vy: (Math.random() - 0.5) * 48,
                 size: 26,
                 emoji: emoji,
                 exitedCircle: false
@@ -140,6 +140,7 @@
                     if (isInGap) {
                       flag.exitedCircle = true;
                     } else {
+                      // DVD-style bounce - just reverse the velocity component
                       const nx = dx / distance;
                       const ny = dy / distance;
                       
@@ -150,9 +151,6 @@
                       const overlap = distance + flag.size / 2 - radius;
                       flag.x -= overlap * nx;
                       flag.y -= overlap * ny;
-                      
-                      flag.vx *= 0.99;
-                      flag.vy *= 0.99;
                       
                       playBounceSound();
                     }
@@ -193,36 +191,25 @@
                   const minDistance = (flag1.size + flag2.size) / 2;
                   
                   if (distance < minDistance && distance > 0) {
+                    // DVD-style collision - swap velocities
+                    const tempVx = flag1.vx;
+                    const tempVy = flag1.vy;
+                    flag1.vx = flag2.vx;
+                    flag1.vy = flag2.vy;
+                    flag2.vx = tempVx;
+                    flag2.vy = tempVy;
+                    
+                    // Separate flags to prevent overlap
                     const nx = dx / distance;
                     const ny = dy / distance;
+                    const overlap = minDistance - distance;
+                    const separationX = (overlap / 2) * nx;
+                    const separationY = (overlap / 2) * ny;
                     
-                    const dvx = flag2.vx - flag1.vx;
-                    const dvy = flag2.vy - flag1.vy;
-                    
-                    const dvn = dvx * nx + dvy * ny;
-                    
-                    if (dvn < 0) {
-                      const impulse = dvn;
-                      
-                      flag1.vx += impulse * nx;
-                      flag1.vy += impulse * ny;
-                      flag2.vx -= impulse * nx;
-                      flag2.vy -= impulse * ny;
-                      
-                      const overlap = minDistance - distance;
-                      const separationX = (overlap / 2) * nx;
-                      const separationY = (overlap / 2) * ny;
-                      
-                      flag1.x -= separationX;
-                      flag1.y -= separationY;
-                      flag2.x += separationX;
-                      flag2.y += separationY;
-                      
-                      flag1.vx *= 0.98;
-                      flag1.vy *= 0.98;
-                      flag2.vx *= 0.98;
-                      flag2.vy *= 0.98;
-                    }
+                    flag1.x -= separationX;
+                    flag1.y -= separationY;
+                    flag2.x += separationX;
+                    flag2.y += separationY;
                   }
                 }
               }
