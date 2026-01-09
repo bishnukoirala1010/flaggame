@@ -13,14 +13,15 @@
     
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #581c87 0%, #1e3a8a 50%, #312e81 100%);
+      background: linear-gradient(135deg, #87CEEB 0%, #B0C4DE 50%, #778899 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 16px;
-      padding: 16px;
+      padding: 0;
+      overflow: hidden;
     }
     
     .game-container {
@@ -35,12 +36,12 @@
     .info-overlay {
       position: absolute;
       top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
+      right: -180px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #1f2937;
       padding: 8px 16px;
       border-radius: 8px;
+      border: 2px solid rgba(0, 0, 0, 0.2);
     }
     
     .info-text {
@@ -51,18 +52,19 @@
     }
     
     .sidebar {
-      background: #1f2937;
-      border: 4px solid #374151;
+      background: transparent;
+      border: none;
       border-radius: 8px;
       padding: 6px;
       width: auto;
       max-width: 1200px;
+      margin-top: 20px;
     }
     
     .sidebar h2 {
       font-size: 14px;
       font-weight: bold;
-      color: #fbbf24;
+      color: #1f2937;
       margin-bottom: 8px;
       text-align: center;
     }
@@ -76,20 +78,20 @@
     }
     
     .no-winners {
-      color: #9ca3af;
+      color: #4b5563;
       text-align: center;
       font-size: 10px;
     }
     
     .winner-item {
-      background: #374151;
+      background: rgba(255, 255, 255, 0.7);
       border-radius: 4px;
       padding: 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      border: 2px solid #4b5563;
+      border: 2px solid rgba(0, 0, 0, 0.2);
       min-width: 70px;
       text-align: center;
     }
@@ -105,13 +107,13 @@
     }
     
     .winner-name {
-      color: white;
+      color: #1f2937;
       font-weight: bold;
       font-size: 9px;
     }
     
     .winner-round {
-      color: #9ca3af;
+      color: #4b5563;
       font-size: 8px;
     }
     
@@ -142,14 +144,14 @@
     const height = 900;
     
     const centerX = width / 2;
-    const centerY = height / 2 - 100;
+    const centerY = height / 2 - 120;
     const radius = 200;
     
     const rect = {
       width: 650,
-      height: 800,
+      height: 900,
       get x() { return centerX - this.width / 2; },
-      get y() { return centerY - this.height / 2 + 130; }
+      get y() { return centerY - this.height / 2 + 60; }
     };
     
     let rotation = 0;
@@ -199,8 +201,13 @@
     
     let flags = initFlags();
     
+    let audioContext = null;
+    
     function playBounceSound() {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -223,7 +230,6 @@
       utterance.pitch = 1.2;
       utterance.volume = 1.0;
       
-      // Try to select a female voice
       const voices = window.speechSynthesis.getVoices();
       const femaleVoice = voices.find(voice => 
         voice.name.includes('Female') || 
@@ -245,7 +251,6 @@
       window.speechSynthesis.speak(utterance);
     }
     
-    // Load voices when they're ready
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.getVoices();
@@ -281,26 +286,22 @@
     }
     
     function draw() {
-      // Background gradient
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, '#334155');
-      gradient.addColorStop(0.5, '#1e293b');
-      gradient.addColorStop(1, '#0f172a');
+      gradient.addColorStop(0, '#87CEEB');
+      gradient.addColorStop(0.5, '#B0C4DE');
+      gradient.addColorStop(1, '#778899');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
       
-      // Draw rectangle
-      ctx.strokeStyle = '#10b981';
-      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
       ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
       
-      // Update flags
       flags.forEach(flag => {
         if (flag.exitedCircle) {
           flag.vy += gravity * (slowMotion ? 0.2 : 1);
         }
         
-        // Animate size growth
         if (flag.growStartTime) {
           const elapsed = Date.now() - flag.growStartTime;
           const progress = Math.min(elapsed / flag.growDuration, 1);
@@ -312,13 +313,11 @@
         flag.x += flag.vx * speedMultiplier;
         flag.y += flag.vy * speedMultiplier;
         
-        // Circle collision
         const dx = flag.x - centerX;
         const dy = flag.y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (!flag.exitedCircle) {
-          // Inside the circle - check for exit or bounce from inside
           if (distance + flag.size / 2 > radius) {
             let angle = Math.atan2(dy, dx);
             if (angle < 0) angle += Math.PI * 2;
@@ -349,7 +348,6 @@
             }
           }
         } else {
-          // Outside the circle - check for collision from outside
           if (distance - flag.size / 2 < radius) {
             let angle = Math.atan2(dy, dx);
             if (angle < 0) angle += Math.PI * 2;
@@ -362,7 +360,6 @@
             
             const isInGap = flagAngle > (Math.PI * 2 * 0.90);
             
-            // Only bounce if not in the gap area
             if (!isInGap) {
               const nx = dx / distance;
               const ny = dy / distance;
@@ -380,7 +377,6 @@
           }
         }
         
-        // Rectangle collision
         if (flag.exitedCircle) {
           const halfSize = flag.size / 2;
           
@@ -404,7 +400,6 @@
         }
       });
       
-      // Flag-to-flag collision
       for (let i = 0; i < flags.length; i++) {
         for (let j = i + 1; j < flags.length; j++) {
           const flag1 = flags[i];
@@ -457,7 +452,6 @@
         }
       }
       
-      // Check for last flag
       const flagsInCircle = flags.filter(f => !f.exitedCircle);
       document.getElementById('flagsRemaining').textContent = flagsInCircle.length;
       
@@ -469,14 +463,12 @@
         lastFlag.growStartTime = Date.now();
         lastFlag.growDuration = 2000;
         
-        // Announce the winner
         const winningName = countryNames[lastFlag.emoji] || 'Unknown';
         announceWinner(winningName);
         
         if (!hasTriggeredReset) {
           hasTriggeredReset = true;
           resetTimer = setTimeout(() => {
-            // Add the winner to the list (the last flag that was in the circle)
             const winningFlag = lastFlag.emoji;
             const winningName = countryNames[winningFlag] || 'Unknown';
             
@@ -491,12 +483,11 @@
         }
       }
       
-      // Draw rotating circle
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(rotation);
       
-      ctx.strokeStyle = '#3b82f6';
+      ctx.strokeStyle = '#000000';
       ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2 * 0.90);
@@ -506,16 +497,13 @@
       
       rotation += slowMotion ? 0.004 : 0.02;
       
-      // Draw flags
       flags.forEach(flag => {
         ctx.font = `${flag.size}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(flag.emoji, flag.x, flag.y);
         
-        // Draw text below the last remaining flag
         if (slowMotion && !flag.exitedCircle) {
-          // Draw "WINNER" text
           ctx.font = 'bold 36px Arial';
           ctx.fillStyle = '#fbbf24';
           ctx.strokeStyle = '#000';
@@ -523,7 +511,6 @@
           ctx.strokeText('WINNER', flag.x, flag.y + flag.size / 2 + 50);
           ctx.fillText('WINNER', flag.x, flag.y + flag.size / 2 + 50);
           
-          // Draw country name
           const countryName = countryNames[flag.emoji] || 'Unknown';
           ctx.font = 'bold 28px Arial';
           ctx.fillStyle = '#fff';
