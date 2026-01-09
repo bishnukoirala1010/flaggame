@@ -102,9 +102,10 @@
             };
             
             let isPausedLocal = false;
+            let slowMotion = false;
             
             const draw = () => {
-              if (isPausedLocal || winner) return;
+              if (isPausedLocal) return;
               
               ctx.clearRect(0, 0, width, height);
               
@@ -114,11 +115,12 @@
               
               flags.forEach(flag => {
                 if (flag.exitedCircle) {
-                  flag.vy += gravity;
+                  flag.vy += gravity * (slowMotion ? 0.2 : 1);
                 }
                 
-                flag.x += flag.vx;
-                flag.y += flag.vy;
+                const speedMultiplier = slowMotion ? 0.2 : 1;
+                flag.x += flag.vx * speedMultiplier;
+                flag.y += flag.vy * speedMultiplier;
                 
                 if (!flag.exitedCircle) {
                   const dx = flag.x - centerX;
@@ -228,56 +230,11 @@
                   return newWinners.slice(0, 5);
                 });
                 
-                isPausedLocal = true;
+                slowMotion = true;
                 
                 setTimeout(() => {
                   setShowWinner(true);
                 }, 2000);
-                
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                const duration = 2;
-                const bufferSize = audioContext.sampleRate * duration;
-                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                
-                for (let i = 0; i < bufferSize; i++) {
-                  data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioContext.sampleRate * 0.5));
-                }
-                
-                const noise = audioContext.createBufferSource();
-                noise.buffer = buffer;
-                
-                const filter = audioContext.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = 1000;
-                filter.Q.value = 1;
-                
-                const gainNode = audioContext.createGain();
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-                
-                noise.connect(filter);
-                filter.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                noise.start(audioContext.currentTime);
-                noise.stop(audioContext.currentTime + duration);
-                
-                const newConfetti = [];
-                for (let i = 0; i < 150; i++) {
-                  newConfetti.push({
-                    x: Math.random() * 1200,
-                    y: -20 - Math.random() * 100,
-                    vx: (Math.random() - 0.5) * 4,
-                    vy: Math.random() * 3 + 2,
-                    rotation: Math.random() * 360,
-                    rotationSpeed: (Math.random() - 0.5) * 10,
-                    color: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4'][Math.floor(Math.random() * 8)],
-                    size: Math.random() * 8 + 4
-                  });
-                }
-                setConfetti(newConfetti);
               }
               
               ctx.save();
@@ -292,7 +249,7 @@
               
               ctx.restore();
               
-              rotation += 0.02;
+              rotation += slowMotion ? 0.004 : 0.02;
               
               flags.forEach(flag => {
                 ctx.font = `${flag.size}px Arial`;
@@ -307,52 +264,38 @@
             let animationId = requestAnimationFrame(draw);
             
             return () => cancelAnimationFrame(animationId);
-          }, [winner, winnerName, roundNumber, isPaused]);
-          
-          useEffect(() => {
-            if (confetti.length === 0) return;
-            
-            const interval = setInterval(() => {
-              setConfetti(prevConfetti => {
-                return prevConfetti.map(particle => ({
-                  ...particle,
-                  x: particle.x + particle.vx,
-                  y: particle.y + particle.vy,
-                  vy: particle.vy + 0.2,
-                  rotation: particle.rotation + particle.rotationSpeed
-                })).filter(particle => particle.y < 1000);
-              });
-            }, 1000 / 60);
-            
-            return () => clearInterval(interval);
-          }, [confetti.length > 0]);
+          }, [roundNumber]);
           
           useEffect(() => {
             if (winner) {
-              const timeout = setTimeout(() => {
+              // Show winner announcement after 2 seconds
+              const showTimeout = setTimeout(() => {
+                setShowWinner(true);
+              }, 2000);
+              
+              // Hide winner announcement after 7 seconds (5 seconds visible)
+              const hideTimeout = setTimeout(() => {
+                setShowWinner(false);
+              }, 7000);
+              
+              // Reset game after 7 seconds
+              const resetTimeout = setTimeout(() => {
                 setWinner(null);
                 setWinnerName('');
-                setShowWinner(false);
                 setRoundNumber(prev => prev + 1);
                 setIsPaused(false);
                 setConfetti([]);
                 flagsRef.current = null;
               }, 7000);
               
-              return () => clearTimeout(timeout);
+              return () => {
+                clearTimeout(showTimeout);
+                clearTimeout(hideTimeout);
+                clearTimeout(resetTimeout);
+              };
             }
           }, [winner]);
           
-          useEffect(() => {
-            if (showWinner) {
-              const timeout = setTimeout(() => {
-                setShowWinner(false);
-              }, 5000);
-              
-              return () => clearTimeout(timeout);
-            }
-          }, [showWinner]);
-
           return (
             <div className="flex items-center justify-center min-h-screen bg-gray-900 gap-4 p-4">
               <div className="relative">
@@ -363,25 +306,9 @@
                   className="border-4 border-gray-700 rounded-lg bg-gray-800"
                 />
                 
-                {confetti.map((particle, i) => (
-                  <div
-                    key={i}
-                    className="absolute"
-                    style={{
-                      left: particle.x,
-                      top: particle.y,
-                      width: particle.size,
-                      height: particle.size,
-                      backgroundColor: particle.color,
-                      transform: `rotate(${particle.rotation}deg)`,
-                      borderRadius: '2px'
-                    }}
-                  />
-                ))}
-                
-                <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg">
-                  <div className="text-xl font-bold">Round: {roundNumber}</div>
-                  <div className="text-xl font-bold">Flags Remaining: {flagsRemaining}</div>
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg">
+                  <div className="text-sm font-bold text-center">Round: {roundNumber}</div>
+                  <div className="text-sm font-bold text-center">Flags Remaining: {flagsRemaining}</div>
                 </div>
                 
                 {showWinner && (
@@ -391,7 +318,6 @@
                       <div className="text-9xl mb-4">{winner}</div>
                       <p className="text-4xl font-bold text-white mb-2">{winnerName}</p>
                       <p className="text-2xl text-gray-300">Last Flag Standing!</p>
-                      <p className="text-xl text-yellow-300 mt-4">({flagsRemaining} remaining)</p>
                     </div>
                   </div>
                 )}
