@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flag Bounce Game</title>
+  <link href="https://emoji-css.afeld.me/emoji.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #e64d94 0%, #33ebd2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+      padding: 0;
+    }
+    
+    .game-container {
+      position: relative;
+    }
+    
+    canvas {
+      background: transparent;
+      width: 100%;
+      height: 100%;
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 99999;
+    }
+    
+    #flagsContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 100000;
+    }
+    
+    .flag-element {
+      position: absolute;
+      font-size: 15px; /* Changed from 30px to 15px (half size) */
+      transform: translate(-50%, -50%);
+      transition: none;
+      z-index: 100001;
+    }
+    
+    .flag-collider {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 100003;
+      box-sizing: border-box;
+      border-radius: 2px;
+    }
+    
+    .winner-text {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100010;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+      white-space: nowrap;
+    }
+    
+    .winner-text.winner-label {
+      color: #fbbf24;
+      font-size: 72px;
+    }
+    
+    .winner-text.country-name {
+      color: #fff;
+      font-size: 72px;
+    }
+    
+    .draggable-panel {
+      position: fixed;
+      top: 30px;  /* Moved 3px up from 20px */
+      right: 20px;
+      width: 200px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      cursor: move;
+      user-select: none;
+      z-index: 100000;
+    }
+    
+    #lastSeriesWinnerPanel {
+      height: auto !important;
+      min-height: 100px;
+      width: 250px !important;
+    }
+    
+    .panel-header {
+      background: #333;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px 8px 0 0;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    #lastSeriesWinnerPanel .panel-header {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .panel-content {
+      padding: 8px;
+      font-size: 12px;
+    }
+    
+    #topCountriesList {
+      max-height: 160px; /* Taller for 3 flags without overlapping */
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #topCountriesList .scroll-content {
+      position: relative;
+      transition: transform 10s linear;
+    }
+    
+    @keyframes scrollDown {
+      from { transform: translateY(0); }
+      to { transform: translateY(-320px); } /* 8 items x 40px to show items 8-10 */
+    }
+    
+    @keyframes scrollUp {
+      from { transform: translateY(-320px); }
+      to { transform: translateY(0); }
+    }
+    
+    .scrolling-down {
+      animation: scrollDown 10s linear;
+    }
+    
+    .scrolling-up {
+      animation: scrollUp 0.5s linear;
+    }
+    
+    #lastSeriesWinnerPanel .panel-content {
+      padding: 4px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .country-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
+      transition: transform 0.4s ease-in-out;
+      min-height: 40px; /* Fixed height for consistency */
+      margin-bottom: 3px; /* 3px gap between countries */
+    }
+    
+    .country-item:nth-child(1) {
+      background: linear-gradient(135deg, #F4E4C1, #E6D690);
+      border: 2px solid #D4AF37;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    
+    .country-item:nth-child(2) {
+      background: linear-gradient(135deg, #E8E8E8, #D3D3D3);
+      border: 2px solid #B8B8B8;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    
+    .country-item:nth-child(3) {
+      background: linear-gradient(135deg, #E6D4B8, #D4A76A);
+      border: 2px solid #B87333;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    
+    .country-item:nth-child(n+4) {
+      border: 2px solid #000000;
+      border-radius: 4px;
+    }
+    
+    .country-item.hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    
+    .country-item {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+      border-left: 3px solid #333;
+    }
+    
+    #lastSeriesWinnerPanel .country-item {
+      padding: 2px 4px;
+      margin: 1px 0;
+      border-radius: 3px;
+      border-left: 2px solid #333;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-width: 0;
+    }
+    
+    .country-rank {
+      font-weight: bold;
+      margin-right: 6px;
+      min-width: 20px;
+    }
+    
+    #lastSeriesWinnerPanel .country-rank {
+      margin-right: 0;
+      min-width: auto;
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+    
+    .country-flag {
+      font-size: 16px;
+      margin-right: 6px;
+    }
+    
+    #lastSeriesWinnerPanel .country-flag {
+      font-size: 14px;
+      margin-right: 0;
+      margin-bottom: 2px;
+    }
+    
+    .country-info {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .country-name {
+      font-weight: 500;
+    }
+    
+    #lastSeriesWinnerPanel .country-info {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    #lastSeriesWinnerPanel .country-name {
+      font-size: 10px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    
+    .country-wins {
+      font-size: 11px;
+      color: #666;
+      font-weight: bold;
+    }
+    
+  </style>
+</head>
+<body>
+  
+  <div class="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="flagsContainer"></div>
+  </div>
+
+  <div class="draggable-panel" id="controlPanel">
+    <div class="panel-header">Top 10 Countries</div>
+    <div class="panel-content" id="topCountriesList">
+      <div>Loading...</div>
+    </div>
+  </div>
+
+  <div class="draggable-panel" id="lastSeriesWinnerPanel">
+    <div class="panel-header">Last 3 Series Winners</div>
+    <div class="panel-content" id="lastSeriesWinnerContent">
+      <div>No previous series winners</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Function to update canvas dimensions based on browser zoom
+    function updateCanvasDimensions() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Update global variables that depend on dimensions
+      window.gameCenterX = width / 2;
+      window.gameCenterY = height / 2 - 120 + 80 + 30;
+      window.gameCircleCenterY = window.gameCenterY + 70;
+      window.gameRectCenterY = height / 2 - 120 + 30;
+    }
+    
+    // Initial setup
+    updateCanvasDimensions();
+    
+    // Update dimensions on window resize
+    window.addEventListener('resize', updateCanvasDimensions);
+    
+    // Use the global variables
+    let centerX = window.gameCenterX;
+    let centerY = window.gameCenterY;
+    let circleCenterY = window.gameCircleCenterY;
+    let rectCenterY = window.gameRectCenterY;
+    const radius = 200;
+    
+    const rect = {
+      width: 520,
+      height: 720,
+      get x() { return centerX - this.width / 2; },
+      get y() { return rectCenterY - this.height / 2 + 200; }
+    };
+    
+    // Guide rectangle configuration
+    const guideConfig = {
+      ratio: '9:16',  // Locked aspect ratio
+      scale: 1.8,     // Scale factor (adjust manually)
+      offsetX: 0,     // Horizontal offset from main rect (adjust manually)
+      offsetY: 15,  // Vertical offset from main rect (adjust manually)
+      centered: true  // Keep rectangle centered
+    };
+    
+    // Add guide rectangle with configurable position and scale
+    const guideRect = {
+      get ratioWidth() { return 16; },
+      get ratioHeight() { return 9; },
+      get baseWidth() { return rect.width * guideConfig.scale; },
+      get baseHeight() { return (this.baseWidth / this.ratioWidth) * this.ratioHeight; },
+      get width() { return this.baseWidth; },  // For 90° rotation, swap dimensions
+      get height() { return this.baseHeight; },
+      get x() { 
+        if (guideConfig.centered) {
+          return centerX - this.width / 2 + guideConfig.offsetX;
+        } else {
+          return rect.x + guideConfig.offsetX;
+        }
+      },
+      get y() { 
+        if (guideConfig.centered) {
+          return centerY - this.height / 2 + guideConfig.offsetY;
+        } else {
+          return rect.y + guideConfig.offsetY;
+        }
+      }
+    };
+    
+    let rotation = 0;
+    let roundNumber = 1;
+    let winner = null;
+    let winnerName = '';
+    let recentWinners = [];
+    let slowMotion = false;
+    let hasTriggeredReset = false;
+    let resetTimer = null;
+    let countryWins = {};  // Track wins for each country
+    let gamePaused = false;  // Track if game is paused for 10-win announcement
+    let tenWinPauseTimer = null;  // Timer for 10-win pause
+    let lastSeriesWinners = [];  // Track last 3 series winners
+    let roundStartTime = Date.now();  // Track when each round starts
+    let gapOpen = false;  // Track if gap is open
+    
+    const countryNames = {
+      'em-flag-us': 'United States', 'em-flag-gb': 'United Kingdom', 'em-flag-ca': 'Canada', 'em-flag-au': 'Australia', 'em-flag-de': 'Germany',
+      'em-flag-fr': 'France', 'em-flag-it': 'Italy', 'em-flag-es': 'Spain', 'em-flag-nl': 'Netherlands', 'em-flag-se': 'Sweden',
+      'em-flag-no': 'Norway', 'em-flag-dk': 'Denmark', 'em-flag-fi': 'Finland', 'em-flag-pl': 'Poland', 'em-flag-cz': 'Czech Republic',
+      'em-flag-at': 'Austria', 'em-flag-ch': 'Switzerland', 'em-flag-be': 'Belgium', 'em-flag-ie': 'Ireland', 'em-flag-pt': 'Portugal',
+      'em-flag-gr': 'Greece', 'em-flag-ro': 'Romania', 'em-flag-hu': 'Hungary', 'em-flag-ru': 'Russia', 'em-flag-ua': 'Ukraine',
+      'em-flag-jp': 'Japan', 'em-flag-kr': 'South Korea', 'em-flag-cn': 'China', 'em-flag-in': 'India', 'em-flag-th': 'Thailand',
+      'em-flag-vn': 'Vietnam', 'em-flag-ph': 'Philippines', 'em-flag-id': 'Indonesia', 'em-flag-my': 'Malaysia', 'em-flag-sg': 'Singapore',
+      'em-flag-tw': 'Taiwan', 'em-flag-hk': 'Hong Kong', 'em-flag-nz': 'New Zealand', 'em-flag-za': 'South Africa', 'em-flag-ae': 'UAE',
+      'em-flag-sa': 'Saudi Arabia', 'em-flag-tr': 'Turkey', 'em-flag-il': 'Israel', 'em-flag-eg': 'Egypt', 'em-flag-mx': 'Mexico',
+      'em-flag-br': 'Brazil', 'em-flag-ar': 'Argentina', 'em-flag-cl': 'Chile', 'em-flag-co': 'Colombia', 'em-flag-pe': 'Peru',
+      'em-flag-ve': 'Venezuela', 'em-flag-ec': 'Ecuador', 'em-flag-cr': 'Costa Rica', 'em-flag-pa': 'Panama', 'em-flag-cu': 'Cuba',
+      'em-flag-jm': 'Jamaica', 'em-flag-ng': 'Nigeria', 'em-flag-ke': 'Kenya', 'em-flag-gh': 'Ghana', 'em-flag-et': 'Ethiopia',
+      'em-flag-pk': 'Pakistan', 'em-flag-bd': 'Bangladesh', 'em-flag-lk': 'Sri Lanka', 'em-flag-np': 'Nepal', 'em-flag-kz': 'Kazakhstan',
+      'em-flag-ma': 'Morocco', 'em-flag-tn': 'Tunisia', 'em-flag-jo': 'Jordan', 'em-flag-lb': 'Lebanon'
+    };
+    
+    const countries = Object.keys(countryNames);
+    const gravity = 1;
+    
+    function initFlags() {
+      const container = document.getElementById('flagsContainer');
+      container.innerHTML = ''; // Clear existing flags
+      
+      return countries.map((emojiClass) => {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * (radius - 50);
+        
+        // Create HTML element for the flag
+        const flagElement = document.createElement('i');
+        flagElement.className = `em ${emojiClass} flag-element`;
+        flagElement.style.left = `${centerX + Math.cos(angle) * distance}px`;
+        flagElement.style.top = `${circleCenterY + Math.sin(angle) * distance}px`;
+        container.appendChild(flagElement);
+        
+        // Create collider element for testing (rectangle matching flag shape)
+        const colliderElement = document.createElement('div');
+        colliderElement.className = 'flag-collider';
+        colliderElement.style.position = 'absolute';
+        colliderElement.style.left = `${centerX + Math.cos(angle) * distance}px`;
+        colliderElement.style.top = `${circleCenterY + Math.sin(angle) * distance}px`;
+        colliderElement.style.width = '30px';
+        colliderElement.style.height = '30px';
+        colliderElement.style.border = '2px solid #00ff00';
+        colliderElement.style.borderRadius = '2px';
+        colliderElement.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
+        colliderElement.style.pointerEvents = 'none';
+        colliderElement.style.transform = 'translate(-50%, -50%)';
+        colliderElement.style.zIndex = '100003';
+        colliderElement.style.boxSizing = 'border-box';
+        colliderElement.style.display = 'none'; // Hide collider elements
+        container.appendChild(colliderElement);
+        
+        return {
+          x: centerX + Math.cos(angle) * distance,
+          y: circleCenterY + Math.sin(angle) * distance,
+          vx: (Math.random() - 0.5) * 48,
+          vy: (Math.random() - 0.5) * 48,
+          size: 15, // Changed from 30 to 15 (half size)
+          emoji: emojiClass,
+          element: flagElement,
+          colliderElement: colliderElement,
+          exitedCircle: false
+        };
+      }).map(flag => {
+        // Ensure minimum speed threshold (10x increase from ~2 to ~20)
+        const minSpeed = 20;
+        const speed = Math.sqrt(flag.vx * flag.vx + flag.vy * flag.vy);
+        if (speed < minSpeed && speed > 0) {
+          const scale = minSpeed / speed;
+          flag.vx *= scale;
+          flag.vy *= scale;
+        } else if (speed === 0) {
+          // If completely still, give random minimum speed
+          const angle = Math.random() * Math.PI * 2;
+          flag.vx = Math.cos(angle) * minSpeed;
+          flag.vy = Math.sin(angle) * minSpeed;
+        }
+        return flag;
+      });
+    }
+    
+    let flags = initFlags();
+    console.log('Flags initialized:', flags.length);
+    
+    let audioContext = null;
+    let audioInitialized = false;
+    
+    function initAudio() {
+      if (!audioInitialized) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioInitialized = true;
+      }
+    }
+    
+    function playBounceSound() {
+      if (!audioInitialized) {
+        initAudio();
+      }
+      
+      // Only play sound if audio context is running
+      if (audioContext && audioContext.state === 'running') {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 200 + Math.random() * 150;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+      }
+    }
+    
+    // Initialize audio on first user interaction
+    document.addEventListener('click', function initAudioOnInteraction() {
+      initAudio();
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      document.removeEventListener('click', initAudioOnInteraction);
+    }, { once: true });
+    
+    function announceWinner(countryEmoji, countryName) {
+      // Track wins using flag emoji as key
+      if (!countryWins[countryEmoji]) {
+        countryWins[countryEmoji] = 0;
+      }
+      countryWins[countryEmoji]++;
+      
+      // Check if this country reached 10 wins
+      if (countryWins[countryEmoji] === 10) {
+        announceTenWinSeriesWinner(countryEmoji, countryName);
+        return;  // Don't play regular winner announcement for 10th win
+      }
+      
+      // Initialize audio if needed
+      if (!audioInitialized) {
+        initAudio();
+      }
+      
+      // Play "the winner is" audio first
+      const winnerIsAudio = new Audio('voice/the winner is.wav');
+      winnerIsAudio.play().catch(e => console.log('Audio play failed:', e));
+      
+      // Play country name audio after delay
+      setTimeout(() => {
+        const countryAudio = new Audio(`voice/${countryName}.wav`);
+        countryAudio.play().catch(e => console.log('Audio play failed:', e));
+      }, 1200);  // 800ms delay
+    }
+    
+    function announceTenWinSeriesWinner(countryEmoji, countryName) {
+      // Pause the game
+      gamePaused = true;
+      
+      // Initialize audio if needed
+      if (!audioInitialized) {
+        initAudio();
+      }
+      
+      // Play "the 10 round series winner is" audio
+      const seriesWinnerAudio = new Audio('voice/the 10 round series winner is.wav');
+      seriesWinnerAudio.play().catch(e => console.log('Audio play failed:', e));
+      
+      // After 2 seconds, display the flag and play country name
+      setTimeout(() => {
+        // Update canvas dimensions before drawing
+        updateCanvasDimensions();
+        
+        // Display large flag and country name on screen
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Create temporary element for the large iOS flag
+        const tempFlagElement = document.createElement('div');
+        tempFlagElement.innerHTML = `<i class="em ${countryEmoji}" style="font-size: 400px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"></i>`;
+        tempFlagElement.style.position = 'fixed';
+        tempFlagElement.style.top = '0';
+        tempFlagElement.style.left = '0';
+        tempFlagElement.style.width = '100vw';
+        tempFlagElement.style.height = '100vh';
+        tempFlagElement.style.zIndex = '9999';
+        tempFlagElement.style.pointerEvents = 'none';
+        document.body.appendChild(tempFlagElement);
+        
+        // Draw country name
+        ctx.font = 'bold 96px Arial';
+        ctx.fillStyle = '#fbbf24';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 8;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeText(countryName, window.gameCenterX, window.gameCenterY + 150);
+        ctx.fillText(countryName, window.gameCenterX, window.gameCenterY + 150);
+        
+        // Draw "10 Round Series Champion!" text
+        ctx.font = 'bold 72px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 6;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const championText = '10 Round Series Champion!';
+        ctx.strokeText(championText, window.gameCenterX, window.gameCenterY - 200);
+        ctx.fillText(championText, window.gameCenterX, window.gameCenterY - 200);
+        ctx.restore();
+        
+        // Play country name audio
+        const countryAudio = new Audio(`voice/${countryName}.wav`);
+        countryAudio.play().catch(e => console.log('Audio play failed:', e));
+        
+        // Play clapping sound after country name
+        setTimeout(() => {
+          const clappingAudio = new Audio('voice/clapping.mp3');
+          clappingAudio.play().catch(e => console.log('Audio play failed:', e));
+        }, 1000); // Play clapping 1 second after country name
+        
+        // Remove the temporary flag element after 8 seconds
+        setTimeout(() => {
+          document.body.removeChild(tempFlagElement);
+        }, 8000);
+      }, 2000);
+      
+      // Resume game after 10 seconds
+      tenWinPauseTimer = setTimeout(() => {
+        gamePaused = false;
+        // Add the series winner to the list (keep only last 3)
+        lastSeriesWinners.unshift({ emoji: countryEmoji, name: countryName });
+        if (lastSeriesWinners.length > 3) {
+          lastSeriesWinners = lastSeriesWinners.slice(0, 3);
+        }
+        // Reset the win scores and start new series
+        resetSeries();
+        resetGame();
+      }, 10000);
+    }
+    
+    function resetGame() {
+      // Clear any existing reset timer to prevent glitches
+      if (resetTimer) {
+        clearTimeout(resetTimer);
+        resetTimer = null;
+      }
+      
+      winner = null;
+      winnerName = '';
+      winningFlag = null; // Reset winning flag reference
+      roundNumber++;
+      slowMotion = false;
+      hasTriggeredReset = false;
+      flags = initFlags();
+      roundStartTime = Date.now();  // Reset round start time
+      gapOpen = false;  // Close gap for new round
+      
+      // Hide winner text elements
+      const winnerLabelEl = document.getElementById('winnerLabel');
+      const winnerNameEl = document.getElementById('winnerName');
+      if (winnerLabelEl) winnerLabelEl.style.display = 'none';
+      if (winnerNameEl) winnerNameEl.style.display = 'none';
+      
+      // Play countdown sound when gap closes (with 0.1s delay)
+      setTimeout(() => {
+        const countdownAudio = new Audio('voice/321.mp3');
+        countdownAudio.play().catch(e => console.log('Audio play failed:', e));
+      }, 80);
+    }
+    
+    function resetSeries() {
+      // Reset all country wins
+      countryWins = {};
+      roundNumber = 1;
+    }
+    
+    function draw() {
+      // Update center positions on each frame
+      centerX = window.gameCenterX;
+      centerY = window.gameCenterY;
+      circleCenterY = window.gameCircleCenterY;
+      rectCenterY = window.gameRectCenterY;
+      
+      // Skip drawing if game is paused for 10-win announcement
+      if (gamePaused) {
+        requestAnimationFrame(draw);
+        return;
+      }
+      
+      // Check if 3 seconds have passed and open gap if closed
+      const timeSinceRoundStart = Date.now() - roundStartTime;
+      if (!gapOpen && timeSinceRoundStart > 3000) {
+        gapOpen = true;
+      }
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0)';  // 10% opacity black
+      ctx.lineWidth = 3;
+      ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+      
+      // Draw guide rectangle (16:9, no collisions) - rotated 90 degrees
+      ctx.save();
+      ctx.translate(guideRect.x + guideRect.width/2, guideRect.y + guideRect.height/2);
+      ctx.rotate(Math.PI / 2); // 90 degrees rotation
+      ctx.strokeStyle = '#000000';  // Make visible again
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(-guideRect.width/2, -guideRect.height/2, guideRect.width, guideRect.height);
+      ctx.setLineDash([]);
+      ctx.restore();
+      
+      flags.forEach(flag => {
+        if (flag.exitedCircle) {
+          // Gravity only for exited flags
+          flag.vy += gravity * (slowMotion ? 0.2 : 1);
+          
+          // Add damping only for exited flags to make them settle down smoothly
+          flag.vx *= 0.98; // Horizontal damping
+          flag.vy *= 0.99; // Vertical damping
+          
+          // Stop very small movements to prevent jitter
+          if (Math.abs(flag.vx) < 0.1) flag.vx = 0;
+          if (Math.abs(flag.vy) < 0.1) flag.vy = 0;
+        } else {
+          // No gravity for flags inside circle (zero gravity)
+          
+          // Ensure minimum speed for flags inside circle
+          const minSpeed = 15; // Minimum speed threshold for inside circle
+          const speed = Math.sqrt(flag.vx * flag.vx + flag.vy * flag.vy);
+          if (speed < minSpeed && speed > 0) {
+            const scale = minSpeed / speed;
+            flag.vx *= scale;
+            flag.vy *= scale;
+          } else if (speed === 0) {
+            // If completely still, give random minimum speed
+            const angle = Math.random() * Math.PI * 2;
+            flag.vx = Math.cos(angle) * minSpeed;
+            flag.vy = Math.sin(angle) * minSpeed;
+          }
+        }
+        
+        if (flag.growStartTime) {
+          const elapsed = Date.now() - flag.growStartTime;
+          const progress = Math.min(elapsed / flag.growDuration, 1);
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
+          flag.size = flag.originalSize + (flag.targetSize - flag.originalSize) * easeProgress;
+        }
+        
+        const speedMultiplier = slowMotion ? 0.2 : 1;
+        flag.x += flag.vx * speedMultiplier;
+        flag.y += flag.vy * speedMultiplier;
+        
+        const dx = flag.x - centerX;
+        const dy = flag.y - circleCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (!flag.exitedCircle) {
+          // Check collision with circle boundary using current flag size
+          const flagRadius = flag.size / 2;
+          const distanceToBoundary = distance + flagRadius;
+          
+          if (distanceToBoundary > radius) {
+            let angle = Math.atan2(dy, dx);
+            if (angle < 0) angle += Math.PI * 2;
+            
+            let normalizedRotation = rotation % (Math.PI * 2);
+            if (normalizedRotation < 0) normalizedRotation += Math.PI * 2;
+            
+            let flagAngle = angle - normalizedRotation;
+            if (flagAngle < 0) flagAngle += Math.PI * 2;
+            
+            const isInGap = gapOpen && flagAngle > (Math.PI * 2 * 0.90);
+            
+            if (isInGap) {
+              flag.exitedCircle = true;
+              
+              // Zero bounce - stop all movement when exiting
+              flag.vx = 0;
+              flag.vy = 0;
+            } else {
+              const nx = dx / distance;
+              const ny = dy / distance;
+              
+              const dotProduct = flag.vx * nx + flag.vy * ny;
+              flag.vx -= 2 * dotProduct * nx;
+              flag.vy -= 2 * dotProduct * ny;
+              
+              const overlap = distance + flag.size / 2 - radius;
+              flag.x -= overlap * nx;
+              flag.y -= overlap * ny;
+              
+              playBounceSound();
+            }
+          }
+        } else {
+          // Exited flags - NO circle collision, let them fall freely
+          // This allows exited flags to ignore the spinning circle completely
+        }
+        
+        if (flag.exitedCircle) {
+          const halfSize = flag.size / 2;
+          
+          // Rectangle boundary collisions for exited flags with softer bounce
+          if (flag.x - halfSize < rect.x) {
+            flag.x = rect.x + halfSize + 2;
+            flag.vx = Math.abs(flag.vx) * 0.2; // Soft positive bounce instead of reversal
+          }
+          if (flag.x + halfSize > rect.x + rect.width) {
+            flag.x = rect.x + rect.width - halfSize - 2;
+            flag.vx = -Math.abs(flag.vx) * 0.2; // Soft negative bounce
+          }
+          if (flag.y + halfSize >= rect.y + rect.height) {
+            flag.y = rect.y + rect.height - halfSize - 2;
+            flag.vy = -Math.abs(flag.vy) * 0.1; // Very soft bottom bounce
+          }
+          
+          // Add top boundary check (in case flags bounce up)
+          if (flag.y - halfSize < rect.y) {
+            flag.y = rect.y + halfSize + 2;
+            flag.vy = Math.abs(flag.vy) * 0.1; // Very soft top bounce
+          }
+          
+          // Grid-based positioning for rested flags (brick-like stacking)
+          if (flag.exitedCircle) {
+            // Only apply grid positioning if flag is moving slowly (settled)
+            const speed = Math.sqrt(flag.vx * flag.vx + flag.vy * flag.vy);
+            if (speed < 0.3) { // Lower threshold for more settled flags
+              const gridSize = 20; // Size of each grid cell (slightly larger than flag size 15px)
+              
+              // Ensure flag is within rectangle bounds before grid positioning
+              const rectLeft = rect.x + gridSize / 2;
+              const rectRight = rect.x + rect.width - gridSize / 2;
+              const rectTop = rect.y + gridSize / 2;
+              const rectBottom = rect.y + rect.height - gridSize / 2;
+              
+              // Clamp flag position to rectangle bounds
+              flag.x = Math.max(rectLeft, Math.min(rectRight, flag.x));
+              flag.y = Math.max(rectTop, Math.min(rectBottom, flag.y));
+              
+              const gridX = Math.floor((flag.x - rect.x) / gridSize);
+              const gridY = Math.floor((flag.y - rect.y) / gridSize);
+              
+              // Check if this grid position is occupied
+              const isOccupied = flags.some(otherFlag => {
+                if (otherFlag === flag || !otherFlag.exitedCircle) return false;
+                const otherGridX = Math.floor((otherFlag.x - rect.x) / gridSize);
+                const otherGridY = Math.floor((otherFlag.y - rect.y) / gridSize);
+                return otherGridX === gridX && otherGridY === gridY;
+              });
+              
+              // If occupied, find nearest empty grid cell
+              if (isOccupied) {
+                let foundEmpty = false;
+                let searchRadius = 1;
+                
+                while (!foundEmpty && searchRadius < 10) {
+                  for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                    for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+                      const testX = gridX + dx;
+                      const testY = gridY + dy;
+                      
+                      // Check if test position is within rectangle bounds
+                      const testWorldX = rect.x + testX * gridSize + gridSize / 2;
+                      const testWorldY = rect.y + testY * gridSize + gridSize / 2;
+                      
+                      if (testWorldX < rectLeft || testWorldX > rectRight || 
+                          testWorldY < rectTop || testWorldY > rectBottom) {
+                        continue; // Skip positions outside rectangle
+                      }
+                      
+                      const isEmpty = !flags.some(otherFlag => {
+                        if (otherFlag === flag || !otherFlag.exitedCircle) return false;
+                        const otherGridX = Math.floor((otherFlag.x - rect.x) / gridSize);
+                        const otherGridY = Math.floor((otherFlag.y - rect.y) / gridSize);
+                        return otherGridX === testX && otherGridY === testY;
+                      });
+                      
+                      if (isEmpty) {
+                        // Smooth transition to grid position
+                        const targetX = rect.x + testX * gridSize + gridSize / 2;
+                        const targetY = rect.y + testY * gridSize + gridSize / 2;
+                        
+                        // Gradual movement instead of instant snap
+                        flag.x += (targetX - flag.x) * 0.3;
+                        flag.y += (targetY - flag.y) * 0.3;
+                        
+                        // Stop velocity only when very close to target
+                        if (Math.abs(flag.x - targetX) < 1 && Math.abs(flag.y - targetY) < 1) {
+                          flag.x = targetX;
+                          flag.y = targetY;
+                          flag.vx = 0;
+                          flag.vy = 0;
+                        }
+                        
+                        foundEmpty = true;
+                        break;
+                      }
+                    }
+                    if (foundEmpty) break;
+                  }
+                  searchRadius++;
+                }
+              } else {
+                // Snap to current grid position with smooth transition
+                const targetX = rect.x + gridX * gridSize + gridSize / 2;
+                const targetY = rect.y + gridY * gridSize + gridSize / 2;
+                
+                // Gradual movement instead of instant snap
+                flag.x += (targetX - flag.x) * 0.3;
+                flag.y += (targetY - flag.y) * 0.3;
+                
+                // Stop velocity only when very close to target
+                if (Math.abs(flag.x - targetX) < 1 && Math.abs(flag.y - targetY) < 1) {
+                  flag.x = targetX;
+                  flag.y = targetY;
+                  flag.vx = 0;
+                  flag.vy = 0;
+                }
+              }
+            }
+          }
+        }
+      });
+      
+      // Flag-to-flag collision detection - use current updated size
+      for (let i = 0; i < flags.length; i++) {
+        for (let j = i + 1; j < flags.length; j++) {
+          const flag1 = flags[i];
+          const flag2 = flags[j];
+          
+          // Use current size (which is updated in the forEach loop above)
+          // Ensure we're using the actual current size value
+          const currentSize1 = flag1.size || 15; // Changed from 30 to 15
+          const currentSize2 = flag2.size || 15; // Changed from 30 to 15
+          const halfSize1 = currentSize1 / 2;
+          const halfSize2 = currentSize2 / 2;
+          
+          const left1 = flag1.x - halfSize1;
+          const right1 = flag1.x + halfSize1;
+          const top1 = flag1.y - halfSize1;
+          const bottom1 = flag1.y + halfSize1;
+          
+          const left2 = flag2.x - halfSize2;
+          const right2 = flag2.x + halfSize2;
+          const top2 = flag2.y - halfSize2;
+          const bottom2 = flag2.y + halfSize2;
+          
+          const isColliding = !(right1 < left2 || left1 > right2 || bottom1 < top2 || top1 > bottom2);
+          
+          if (isColliding) {
+            // Check if both flags have exited the circle
+            const bothExited = flag1.exitedCircle && flag2.exitedCircle;
+            
+            if (bothExited) {
+              // Smart collision for exited flags - prevent overlap without jitter
+              const overlapX = Math.min(right1 - left2, right2 - left1);
+              const overlapY = Math.min(bottom1 - top2, bottom2 - top1);
+              
+              if (overlapX < overlapY) {
+                // Horizontal separation - just enough to prevent overlap
+                const separationX = overlapX / 2 + 1; // Minimal separation
+                if (flag1.x < flag2.x) {
+                  flag1.x -= separationX;
+                  flag2.x += separationX;
+                } else {
+                  flag1.x += separationX;
+                  flag2.x -= separationX;
+                }
+                // Stop horizontal movement completely
+                flag1.vx = 0;
+                flag2.vx = 0;
+              } else {
+                // Vertical separation - just enough to prevent overlap
+                const separationY = overlapY / 2 + 1; // Minimal separation
+                if (flag1.y < flag2.y) {
+                  flag1.y -= separationY;
+                  flag2.y += separationY;
+                } else {
+                  flag1.y += separationY;
+                  flag2.y -= separationY;
+                }
+                // Stop vertical movement completely
+                flag1.vy = 0;
+                flag2.vy = 0;
+              }
+              
+              // Add small damping to prevent jitter
+              flag1.vx *= 0.8;
+              flag1.vy *= 0.8;
+              flag2.vx *= 0.8;
+              flag2.vy *= 0.8;
+            } else {
+              // Normal bouncy collision for flags inside circle
+              const tempVx = flag1.vx;
+              const tempVy = flag1.vy;
+              flag1.vx = flag2.vx * 0.5; // Half bounce strength
+              flag1.vy = flag2.vy * 0.5; // Half bounce strength
+              flag2.vx = tempVx * 0.5; // Half bounce strength
+              flag2.vy = tempVy * 0.5; // Half bounce strength
+              
+              const overlapX = Math.min(right1 - left2, right2 - left1);
+              const overlapY = Math.min(bottom1 - top2, bottom2 - top1);
+              
+              if (overlapX < overlapY) {
+                if (flag1.x < flag2.x) {
+                  flag1.x -= overlapX / 0.5;
+                  flag2.x += overlapX / 0.5;
+                } else {
+                  flag1.x += overlapX / 0.5;
+                  flag2.x -= overlapX / 0.5;
+                }
+              } else {
+                if (flag1.y < flag2.y) {
+                  flag1.y -= overlapY / 0.5;
+                  flag2.y += overlapY / 0.5;
+                } else {
+                  flag1.y += overlapY / 2;
+                  flag2.y -= overlapY / 2;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      const flagsInCircle = flags.filter(f => !f.exitedCircle);
+      
+      if (flagsInCircle.length === 1 && !slowMotion) {
+        slowMotion = true;
+        const lastFlag = flagsInCircle[0];
+        winningFlag = lastFlag; // Store reference to winning flag
+        lastFlag.targetSize = 34 * 5;
+        lastFlag.originalSize = lastFlag.size || 15; // Use current size as starting point (changed from 30)
+        lastFlag.growStartTime = Date.now();
+        lastFlag.growDuration = 2000;
+        
+        const winningName = countryNames[lastFlag.emoji] || 'Unknown';
+        announceWinner(lastFlag.emoji, winningName);
+        
+        if (!hasTriggeredReset) {
+          hasTriggeredReset = true;
+          // Clear any existing timer to prevent glitches
+          if (resetTimer) {
+            clearTimeout(resetTimer);
+            resetTimer = null;
+          }
+          resetTimer = setTimeout(() => {
+            console.log('Resetting game after 3 seconds');
+            // Force reset even if game is paused
+            gamePaused = false;
+            resetGame();
+          }, 3000);
+        }
+      }
+      
+      ctx.save();
+      ctx.translate(centerX, circleCenterY);
+      ctx.rotate(rotation);
+      
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2 * 0.90);
+      ctx.stroke();
+      
+      ctx.restore();
+      
+      rotation += slowMotion ? 0.004 : 0.02;
+      
+      flags.forEach(flag => {
+        // Update HTML element position and size
+        if (flag.element) {
+          flag.element.style.left = `${flag.x}px`;
+          flag.element.style.top = `${flag.y}px`;
+          flag.element.style.fontSize = `${flag.size}px`;
+        }
+        
+        // Update collider element position and size (matching flag exactly)
+        if (flag.colliderElement && flag.element) {
+          // Get actual rendered size of flag emoji
+          const flagRect = flag.element.getBoundingClientRect();
+          const flagWidth = flagRect.width || flag.size;
+          const flagHeight = flagRect.height || flag.size;
+          
+          // TO MANUALLY ADJUST COLLIDER SIZE: Modify the multipliers below
+          // Example: flagWidth * 1.1 makes collider 10% wider
+          const colliderWidth = flagWidth;  // Adjust multiplier here (e.g., flagWidth * 0.9)
+          const colliderHeight = flagHeight * 0.75; // Reduced height to match flag better (adjust this value)
+          
+          flag.colliderElement.style.left = `${flag.x}px`;
+          flag.colliderElement.style.top = `${flag.y}px`;
+          flag.colliderElement.style.width = `${colliderWidth}px`;
+          flag.colliderElement.style.height = `${colliderHeight}px`;
+          flag.colliderElement.style.borderColor = flag.exitedCircle ? '#ff0000' : '#00ff00';
+          flag.colliderElement.style.backgroundColor = flag.exitedCircle ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)';
+        }
+        
+      });
+      
+      // Draw winner text AFTER all flags are updated (so it appears on top)
+      if (slowMotion && winningFlag) {
+        // Bring the winning flag to foreground
+        if (winningFlag.element) {
+          winningFlag.element.style.zIndex = '100002';
+        }
+        
+        // Create or update winner text HTML elements (on top of everything)
+        let winnerLabelEl = document.getElementById('winnerLabel');
+        let winnerNameEl = document.getElementById('winnerName');
+        
+        if (!winnerLabelEl) {
+          winnerLabelEl = document.createElement('div');
+          winnerLabelEl.id = 'winnerLabel';
+          winnerLabelEl.className = 'winner-text winner-label';
+          document.body.appendChild(winnerLabelEl);
+        }
+        
+        if (!winnerNameEl) {
+          winnerNameEl = document.createElement('div');
+          winnerNameEl.id = 'winnerName';
+          winnerNameEl.className = 'winner-text country-name';
+          document.body.appendChild(winnerNameEl);
+        }
+        
+        // Update positions and text
+        const winnerLabelY = winningFlag.y - winningFlag.size / 2 - 50;
+        const winnerNameY = winningFlag.y + winningFlag.size / 2 + 50;
+        const countryName = countryNames[winningFlag.emoji] || 'Unknown';
+        
+        winnerLabelEl.textContent = 'WINNER';
+        winnerLabelEl.style.left = `${winningFlag.x}px`;
+        winnerLabelEl.style.top = `${winnerLabelY}px`;
+        winnerLabelEl.style.transform = 'translate(-50%, -50%)';
+        winnerLabelEl.style.display = 'block';
+        
+        winnerNameEl.textContent = countryName;
+        winnerNameEl.style.left = `${winningFlag.x}px`;
+        winnerNameEl.style.top = `${winnerNameY}px`;
+        winnerNameEl.style.transform = 'translate(-50%, -50%)';
+        winnerNameEl.style.display = 'block';
+      } else {
+        // Hide winner text when not in slow motion
+        const winnerLabelEl = document.getElementById('winnerLabel');
+        const winnerNameEl = document.getElementById('winnerName');
+        if (winnerLabelEl) winnerLabelEl.style.display = 'none';
+        if (winnerNameEl) winnerNameEl.style.display = 'none';
+      }
+      
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+    
+    // Draggable panel functionality
+    const panel = document.getElementById('controlPanel');
+    const lastWinnerPanel = document.getElementById('lastSeriesWinnerPanel');
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let currentDraggingPanel = null;
+    
+    // Load saved position from localStorage
+    function loadPanelPosition() {
+      // Load control panel position
+      const savedPosition = localStorage.getItem('panelPosition');
+      if (savedPosition) {
+        const position = JSON.parse(savedPosition);
+        panel.style.left = position.left + 'px';
+        panel.style.top = position.top + 'px';
+        panel.style.right = 'auto'; // Disable right positioning when using left
+        console.log('Loaded position:', position);
+      } else {
+        // Set default position to current CSS position (top: 30px, right: 20px)
+        const defaultLeft = window.innerWidth - 220; // 200px width + 20px right margin
+        const defaultTop = 30;
+        panel.style.left = defaultLeft + 'px';
+        panel.style.top = defaultTop + 'px';
+        panel.style.right = 'auto';
+        // Save this as the default position
+        savePanelPosition();
+        console.log('Set default position:', { left: defaultLeft, top: defaultTop });
+      }
+      
+      // Load last winner panel position
+      const savedLastWinnerPosition = localStorage.getItem('lastWinnerPanelPosition');
+      if (savedLastWinnerPosition) {
+        const position = JSON.parse(savedLastWinnerPosition);
+        lastWinnerPanel.style.left = position.left + 'px';
+        lastWinnerPanel.style.top = position.top + 'px';
+        lastWinnerPanel.style.right = 'auto';
+        console.log('Loaded last winner panel position:', position);
+      } else {
+        // Set default position for last winner panel (below control panel)
+        const defaultLeft = window.innerWidth - 220;
+        const defaultTop = 250; // Below control panel
+        lastWinnerPanel.style.left = defaultLeft + 'px';
+        lastWinnerPanel.style.top = defaultTop + 'px';
+        lastWinnerPanel.style.right = 'auto';
+        saveLastWinnerPanelPosition();
+        console.log('Set default last winner panel position:', { left: defaultLeft, top: defaultTop });
+      }
+    }
+    
+    // Save position to localStorage
+    function savePanelPosition() {
+      const position = {
+        left: panel.offsetLeft,
+        top: panel.offsetTop
+      };
+      localStorage.setItem('panelPosition', JSON.stringify(position));
+      console.log('Saved position:', position); // Debug log
+    }
+    
+    function saveLastWinnerPanelPosition() {
+      const position = {
+        left: lastWinnerPanel.offsetLeft,
+        top: lastWinnerPanel.offsetTop
+      };
+      localStorage.setItem('lastWinnerPanelPosition', JSON.stringify(position));
+      console.log('Saved last winner panel position:', position);
+    }
+    
+    // Load position on page load
+    loadPanelPosition();
+    
+    panel.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      currentDraggingPanel = panel;
+      dragOffsetX = e.clientX - panel.offsetLeft;
+      dragOffsetY = e.clientY - panel.offsetTop;
+      panel.style.cursor = 'grabbing';
+    });
+    
+    lastWinnerPanel.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      currentDraggingPanel = lastWinnerPanel;
+      dragOffsetX = e.clientX - lastWinnerPanel.offsetLeft;
+      dragOffsetY = e.clientY - lastWinnerPanel.offsetTop;
+      lastWinnerPanel.style.cursor = 'grabbing';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging && currentDraggingPanel) {
+        const newX = e.clientX - dragOffsetX;
+        const newY = e.clientY - dragOffsetY;
+        
+        // Keep panel within viewport bounds
+        const maxX = window.innerWidth - currentDraggingPanel.offsetWidth;
+        const maxY = window.innerHeight - currentDraggingPanel.offsetHeight;
+        
+        currentDraggingPanel.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+        currentDraggingPanel.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+        currentDraggingPanel.style.right = 'auto'; // Disable right positioning
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        currentDraggingPanel.style.cursor = 'move';
+        
+        // Save position based on which panel was being dragged
+        if (currentDraggingPanel === panel) {
+          savePanelPosition();
+        } else if (currentDraggingPanel === lastWinnerPanel) {
+          saveLastWinnerPanelPosition();
+        }
+        
+        currentDraggingPanel = null;
+      }
+    });
+    
+    // Also save position when window is resized (in case bounds change)
+    window.addEventListener('resize', () => {
+      savePanelPosition();
+      saveLastWinnerPanelPosition();
+    });
+    
+    // Update panel displays
+    let scrollInterval = null; // Track the interval to prevent duplicates
+    let autoScrollSetup = false; // Track if auto-scroll is already setup
+    let lastCountryCount = 0; // Track if country count changed
+    
+    function updatePanel() {
+      // Get top 10 countries by wins
+      const sortedCountries = Object.entries(countryWins)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      // Only update HTML if country count changed (to prevent layout reset)
+      if (sortedCountries.length !== lastCountryCount) {
+        lastCountryCount = sortedCountries.length;
+        
+        // Generate HTML for top countries list - OLD LAYOUT with flag on left
+        let html = '<div class="scroll-content">';
+        sortedCountries.forEach(([countryKey, wins], index) => {
+          const countryName = countryNames[countryKey] || countryKey;
+          const winText = wins === 1 ? '1 win' : `${wins} wins`;
+          html += `
+            <div class="country-item">
+              <span class="country-rank">#${index + 1}</span>
+              <span class="country-flag"><i class="em ${countryKey}"></i></span>
+              <div class="country-info">
+                <span class="country-name">${countryName}</span>
+                <span class="country-wins">${winText}</span>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+        
+        // If no wins yet, show message
+        if (sortedCountries.length === 0) {
+          html = '<div style="text-align: center; padding: 20px; color: #666;">No wins yet</div>';
+        }
+        
+        document.getElementById('topCountriesList').innerHTML = html;
+        
+        // Reset auto-scroll when HTML changes
+        autoScrollSetup = false;
+        if (scrollInterval) {
+          clearInterval(scrollInterval);
+          scrollInterval = null;
+        }
+      }
+      
+      // Auto-scroll functionality - setup only once when needed
+      const listContainer = document.getElementById('topCountriesList');
+      const items = listContainer.querySelectorAll('.country-item');
+      
+      // Setup auto-scroll only if we have >3 items and haven't setup yet
+      if (items.length > 3 && !autoScrollSetup) {
+        autoScrollSetup = true;
+        let currentIndex = 0;
+        let direction = 1; // 1 for down, -1 for up
+        
+        // Initial setup - show all items for scrolling
+        items.forEach((item, index) => {
+          item.style.display = 'flex';
+        });
+        
+        scrollInterval = setInterval(() => {
+          // Simple CSS animation on inner content
+          const scrollContent = document.querySelector('#topCountriesList .scroll-content');
+          if (!scrollContent) return;
+          
+          // Remove any existing animation classes
+          scrollContent.classList.remove('scrolling-down', 'scrolling-up');
+          
+          // Check current transform and apply opposite animation
+          const currentTransform = window.getComputedStyle(scrollContent).transform;
+          const isAtTop = currentTransform === 'none' || currentTransform === 'matrix(1, 0, 0, 1, 0, 0)';
+          
+          // Check if at bottom by parsing transform matrix (format: matrix(1, 0, 0, 1, 0, -320))
+          let isAtBottom = false;
+          if (currentTransform && currentTransform !== 'none') {
+            const matrixMatch = currentTransform.match(/matrix\([^)]+\)/);
+            if (matrixMatch) {
+              const values = matrixMatch[0].match(/[\d.-]+/g);
+              if (values && values.length >= 6) {
+                const translateY = parseFloat(values[5]);
+                isAtBottom = Math.abs(translateY - (-320)) < 1; // Allow 1px tolerance
+              }
+            }
+          }
+          
+          if (isAtTop) {
+            // At top, scroll down
+            scrollContent.classList.add('scrolling-down');
+          } else if (isAtBottom) {
+            // At bottom, scroll up  
+            scrollContent.classList.add('scrolling-up');
+          } else {
+            // If animation is in progress, determine direction based on current position
+            const matrixMatch = currentTransform.match(/matrix\([^)]+\)/);
+            if (matrixMatch) {
+              const values = matrixMatch[0].match(/[\d.-]+/g);
+              if (values && values.length >= 6) {
+                const translateY = parseFloat(values[5]);
+                if (translateY < -160) {
+                  // More than halfway down, scroll to bottom then up
+                  scrollContent.classList.add('scrolling-down');
+                } else {
+                  // Less than halfway, scroll up
+                  scrollContent.classList.add('scrolling-up');
+                }
+              }
+            } else {
+              // Default to scrolling down
+              scrollContent.classList.add('scrolling-down');
+            }
+          }
+          
+        }, 15000); // 5s pause + 10s scroll = 15s total
+      } else if (items.length <= 3) {
+        // Reset auto-scroll setup if we lose items
+        autoScrollSetup = false;
+        if (scrollInterval) {
+          clearInterval(scrollInterval);
+          scrollInterval = null;
+        }
+        
+        // Show all available items
+        items.forEach((item, index) => {
+          item.style.display = 'flex';
+        });
+      }
+      // If auto-scroll is setup, DON'T touch the HTML - let the interval handle it
+      
+      requestAnimationFrame(updatePanel);
+    }
+    updatePanel();
+    
+    // Update last series winner panel separately
+    function updateLastSeriesWinnerPanel() {
+      lastWinnerPanel.style.display = 'block';
+      if (lastSeriesWinners.length > 0) {
+        let html = '';
+        lastSeriesWinners.forEach((winner, index) => {
+          const rankNumber = index + 1;
+          html += `
+            <div class="country-item">
+              <span class="country-rank">#${rankNumber}</span>
+              <span class="country-flag" style="font-size: 20px;"><i class="em ${winner.emoji}"></i></span>
+              <div class="country-info">
+                <span class="country-name">${winner.name}</span>
+              </div>
+            </div>
+          `;
+        });
+        document.getElementById('lastSeriesWinnerContent').innerHTML = html;
+      } else {
+        document.getElementById('lastSeriesWinnerContent').innerHTML = '<div>No previous series winners</div>';
+      }
+      
+      requestAnimationFrame(updateLastSeriesWinnerPanel);
+    }
+    updateLastSeriesWinnerPanel();
+  </script>
+</body>
+</html>
