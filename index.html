@@ -3,12 +3,12 @@
 <title>Clock</title>
 <meta name="viewport" content="width=240">
 </head>
-<body bgcolor="#000000" text="#00FFFF">
+<body bgcolor="#000000" text="#FFFFFF">
 <center>
-<br><br>
+<font size="2"><span id="day"></span></font><br>
 <font size="7" color="#00ffc3"><b><span id="t">Loading...</span></b></font><font size="3" color="#00ffc3"><b><span id="ap"></span></b></font><br>
 <font size="5"><span id="d"></span></font><br>
-<font size="5" color="#FF0000"><span id="nd"></span></font>
+<font size="5" color="#ff1c99"><span id="nd"></span></font>
 </center>
 <script>
 function u(){
@@ -26,9 +26,12 @@ var timeEl=document.getElementById('t');
 var apEl=document.getElementById('ap');
 var dateEl=document.getElementById('d');
 var ndEl=document.getElementById('nd');
+var dayEl=document.getElementById('day');
 if(timeEl)timeEl.innerHTML=h+':'+m+':'+s;
 if(apEl)apEl.innerHTML=' '+ampm;
 var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+if(dayEl)dayEl.innerHTML=days[k.getDay()];
 if(dateEl)dateEl.innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
 var bs=toBS(k);
 if(ndEl)ndEl.innerHTML=bs;
