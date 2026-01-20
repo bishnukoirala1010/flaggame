@@ -1,77 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=240, initial-scale=1.0, user-scalable=no">
     <title>Kathmandu Time</title>
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
             background-color: #000;
             color: #fff;
-            font-family: 'Courier New', monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            -webkit-user-select: none;
-            user-select: none;
+            font-family: Arial, sans-serif;
+            text-align: center;
         }
         
         #clock {
-            font-size: 28px;
-            text-align: center;
-            line-height: 1.4;
+            padding-top: 80px;
         }
         
         #time {
+            font-size: 32px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         
         #date {
-            font-size: 14px;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
     <div id="clock">
-        <div id="time"></div>
-        <div id="date"></div>
+        <div id="time">--:--:--</div>
+        <div id="date">Loading...</div>
     </div>
 
     <script>
+        function pad(n) {
+            return n < 10 ? '0' + n : n;
+        }
+        
         function updateClock() {
-            const now = new Date();
+            var d = new Date();
             
-            // Kathmandu is UTC+5:45
-            const ktmTime = new Date(now.toLocaleString('en-US', { 
-                timeZone: 'Asia/Kathmandu' 
-            }));
+            // Manual UTC+5:45 offset for Kathmandu
+            var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            var ktm = new Date(utc + (3600000 * 5.75)); // 5 hours 45 minutes
             
-            const hours = String(ktmTime.getHours()).padStart(2, '0');
-            const minutes = String(ktmTime.getMinutes()).padStart(2, '0');
-            const seconds = String(ktmTime.getSeconds()).padStart(2, '0');
+            var h = pad(ktm.getHours());
+            var m = pad(ktm.getMinutes());
+            var s = pad(ktm.getSeconds());
             
-            const timeString = `${hours}:${minutes}:${seconds}`;
+            var timeEl = document.getElementById('time');
+            var dateEl = document.getElementById('date');
             
-            const options = { 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric',
-                timeZone: 'Asia/Kathmandu'
-            };
-            const dateString = ktmTime.toLocaleDateString('en-US', options);
+            if (timeEl) timeEl.innerHTML = h + ':' + m + ':' + s;
             
-            document.getElementById('time').textContent = timeString;
-            document.getElementById('date').textContent = dateString;
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            
+            var dateStr = days[ktm.getDay()] + ', ' + months[ktm.getMonth()] + ' ' + ktm.getDate() + ', ' + ktm.getFullYear();
+            
+            if (dateEl) dateEl.innerHTML = dateStr;
         }
         
         updateClock();
