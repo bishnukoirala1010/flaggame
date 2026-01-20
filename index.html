@@ -19,7 +19,6 @@ var ampm='AM';
 if(h>=12){ampm='PM';}
 if(h>12){h=h-12;}
 if(h==0){h=12;}
-if(h<10)h='0'+h;
 var m=k.getMinutes();if(m<10)m='0'+m;
 var s=k.getSeconds();if(s<10)s='0'+s;
 var timeEl=document.getElementById('t');
