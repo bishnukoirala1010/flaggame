@@ -5,9 +5,9 @@
 </head>
 <body bgcolor="#000000" text="#00FFFF">
 <center>
-<font size="7"><b><span id="t">Loading...</span></b></font><br><br>
+<font size="7"><b><span id="t">Loading...</span></b></font><font size="3"><b><span id="ap"></span></b></font><br><br>
 <font size="4"><span id="d"></span></font><br>
-<font size="5"><font color="#FF0000"><span id="nd"></span></font></font></font>
+<font size="5" color="#FF0000"><span id="nd"></span></font>
 </center>
 <script>
 function u(){
@@ -22,11 +22,16 @@ if(h==0){h=12;}
 if(h<10)h='0'+h;
 var m=k.getMinutes();if(m<10)m='0'+m;
 var s=k.getSeconds();if(s<10)s='0'+s;
-document.getElementById('t').innerHTML=h+':'+m+':'+s+' '+ampm;
+var timeEl=document.getElementById('t');
+var apEl=document.getElementById('ap');
+var dateEl=document.getElementById('d');
+var ndEl=document.getElementById('nd');
+if(timeEl)timeEl.innerHTML=h+':'+m+':'+s;
+if(apEl)apEl.innerHTML=' '+ampm;
 var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-document.getElementById('d').innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
+if(dateEl)dateEl.innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
 var bs=toBS(k);
-document.getElementById('nd').innerHTML=bs;
+if(ndEl)ndEl.innerHTML=bs;
 }
 
 function toBS(ad){
