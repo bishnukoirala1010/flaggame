@@ -1,11 +1,27 @@
-<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="ISO-8859-1">
-    <title>Test</title>
+<title>Clock</title>
+<meta name="viewport" content="width=240">
 </head>
-<body>
-    <h1>Hello World</h1>
-    <p>This is a test</p>
+<body bgcolor="#000000" text="#FFFFFF">
+<center>
+<h1 id="t">Loading...</h1>
+<p id="d"></p>
+</center>
+<script>
+function u(){
+var n=new Date();
+var o=n.getTimezoneOffset()*60000;
+var k=new Date(n.getTime()+o+(20700000));
+var h=k.getHours();if(h<10)h='0'+h;
+var m=k.getMinutes();if(m<10)m='0'+m;
+var s=k.getSeconds();if(s<10)s='0'+s;
+document.getElementById('t').innerHTML=h+':'+m+':'+s;
+var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+document.getElementById('d').innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
+}
+u();
+setInterval(u,1000);
+</script>
 </body>
 </html>
