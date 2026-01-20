@@ -1,27 +1,16 @@
 <html>
 <head>
-<title>Clock</title>
+<title>Video Player</title>
 <meta name="viewport" content="width=240">
+<style>
+body{margin:0;padding:0;background:#000;overflow:hidden;}
+video{width:100%;height:100vh;object-fit:contain;}
+</style>
 </head>
-<body bgcolor="#000000" text="#00FFFF">
-<center>
-<font size="7"><b><span id="t">Loading...</span></b></font><br><br>
-<font size="4"><span id="d"></span></font>
-</center>
-<script>
-function u(){
-var n=new Date();
-var o=n.getTimezoneOffset()*60000;
-var k=new Date(n.getTime()+o+(20700000));
-var h=k.getHours();if(h<10)h='0'+h;
-var m=k.getMinutes();if(m<10)m='0'+m;
-var s=k.getSeconds();if(s<10)s='0'+s;
-document.getElementById('t').innerHTML=h+':'+m+':'+s;
-var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-document.getElementById('d').innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
-}
-u();
-setInterval(u,1000);
-</script>
+<body>
+<video autoplay loop controls>
+<source src="video.3gp" type="video/3gpp">
+Your browser does not support video playback.
+</video>
 </body>
 </html>
