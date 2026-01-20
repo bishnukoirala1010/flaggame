@@ -14,10 +14,15 @@ function u(){
 var n=new Date();
 var o=n.getTimezoneOffset()*60000;
 var k=new Date(n.getTime()+o+(20700000));
-var h=k.getHours();if(h<10)h='0'+h;
+var h=k.getHours();
+var ampm='AM';
+if(h>=12){ampm='PM';}
+if(h>12){h=h-12;}
+if(h==0){h=12;}
+if(h<10)h='0'+h;
 var m=k.getMinutes();if(m<10)m='0'+m;
 var s=k.getSeconds();if(s<10)s='0'+s;
-document.getElementById('t').innerHTML=h+':'+m+':'+s;
+document.getElementById('t').innerHTML=h+':'+m+':'+s+' '+ampm;
 var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 document.getElementById('d').innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
 var bs=toBS(k);
