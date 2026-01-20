@@ -6,7 +6,8 @@
 <body bgcolor="#000000" text="#00FFFF">
 <center>
 <font size="7"><b><span id="t">Loading...</span></b></font><br><br>
-<font size="4"><span id="d"></span></font>
+<font size="4"><span id="d"></span></font><br>
+<font size="5"><font color="#FF0000"><span id="nd"></span></font></font></font>
 </center>
 <script>
 function u(){
@@ -19,7 +20,25 @@ var s=k.getSeconds();if(s<10)s='0'+s;
 document.getElementById('t').innerHTML=h+':'+m+':'+s;
 var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 document.getElementById('d').innerHTML=mo[k.getMonth()]+' '+k.getDate()+', '+k.getFullYear();
+var bs=toBS(k);
+document.getElementById('nd').innerHTML=bs;
 }
+
+function toBS(ad){
+var y=ad.getFullYear();
+var m=ad.getMonth()+1;
+var d=ad.getDate();
+var bsY=y+57;
+var bsD=d+15;
+if(bsD>30)bsD=bsD-30;
+var bsMo=['Baisakh','Jestha','Ashadh','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'];
+var approxMonth=m-4;
+if(approxMonth<1)approxMonth+=12;
+if(d<15)approxMonth--;
+if(approxMonth<1){approxMonth=12;bsY--;}
+return bsMo[approxMonth-1]+' '+bsD+', '+bsY;
+}
+
 u();
 setInterval(u,1000);
 </script>
